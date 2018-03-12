@@ -1,0 +1,11 @@
+1 bounces of radiosity, 23 samples for both
+
+one layer
+cornell: 43.0ms
+conference: 67.3ms
+dragon: 35.0ms
+
+two layers
+cornell: 51.4ms
+conference: 50.6ms
+dragon: 55.6ms

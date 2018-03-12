@@ -1,0 +1,28 @@
+(20 samples)
+1 bounce
+cornell: 13.0ms
+
+2 bounces
+cornell: 29.1ms
+
+5 bounces
+cornell: 77.1ms
+
+(2 bounces)
+11 samples
+cornell: 18.7ms
+
+23 samples
+cornell: 32.6ms
+
+37 samples
+cornell: 48.6ms
+
+(2 bounces, 23 samples)
+wGauss
+cornell: 32.6ms
+
+woGauss
+cornell: 23.2ms
+
+comparison: 32.5ms

@@ -1,0 +1,189 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\citation{deferred}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Theory}{4}{chapter.2}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {2.1}Deferred Rendering}{4}{section.2.1}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.1}{FBO setup for multiple render targets. Assumes textures have been initialised and set up.}}{4}{lstlisting.2.1}}
+\newlabel{list-defFBO}{{2.1}{4}{Deferred Rendering}{lstlisting.2.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.2}{Fragment shader for generation of a simple G-buffer}}{5}{lstlisting.2.2}}
+\newlabel{list-deferred-gen}{{2.2}{5}{Deferred Rendering}{lstlisting.2.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces The contents of the G-buffer textures for the Cornell Box scene. There's no blue, since the eye direction is aligned along the negative Z-axis in view-space.}}{6}{figure.2.1}}
+\newlabel{fig-deferred}{{2.1}{6}{The contents of the G-buffer textures for the Cornell Box scene. There's no blue, since the eye direction is aligned along the negative Z-axis in view-space}{figure.2.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Utilising the G-buffer}{6}{section*.2}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.3}{Deferred Lambertian shader}}{6}{lstlisting.2.3}}
+\newlabel{list-deferred-use}{{2.3}{6}{Utilising the G-buffer}{lstlisting.2.3}{}}
+\citation{deep-g-buffer}
+\@writefile{toc}{\contentsline {subsubsection}{Disadvantages}{7}{section*.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.1}The Deep G-buffer}{7}{subsection.2.1.1}}
+\newlabel{section-deepbuffer}{{2.1.1}{7}{The Deep G-buffer}{subsection.2.1.1}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.4}{Array texture initialisation for deferred rendering.}}{7}{lstlisting.2.4}}
+\newlabel{list-deeptex}{{2.4}{7}{The Deep G-buffer}{lstlisting.2.4}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.5}{Geometry shader for 2-layer rendering.}}{8}{lstlisting.2.5}}
+\newlabel{list-deepgeom}{{2.5}{8}{The Deep G-buffer}{lstlisting.2.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.2}{\ignorespaces Illustration demonstrates the concept of a deep G-buffer. The green triangle is occluding the blue triangle. As a consequence, the blue one is written to the second layer of the G-buffer.}}{9}{figure.2.2}}
+\newlabel{fig-deep-buffer}{{2.2}{9}{Illustration demonstrates the concept of a deep G-buffer. The green triangle is occluding the blue triangle. As a consequence, the blue one is written to the second layer of the G-buffer}{figure.2.2}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.6}{Fragment shader to generate the 2-layer G-buffer. No position is being written, which will be explained in section \ref  {section-reconstruction}}}{10}{lstlisting.2.6}}
+\newlabel{list-deepfrag}{{2.6}{10}{The Deep G-buffer}{lstlisting.2.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.2}Scene Reconstruction}{11}{subsection.2.1.2}}
+\newlabel{section-reconstruction}{{2.1.2}{11}{Scene Reconstruction}{subsection.2.1.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Reconstructing Positions}{11}{section*.4}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.7}{Tying the depth texture to the depth component of the FBO}}{11}{lstlisting.2.7}}
+\newlabel{list-depthFBO}{{2.7}{11}{Reconstructing Positions}{lstlisting.2.7}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Reconstructing Normals}{12}{section*.5}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}Omnidirectional Shadowmapping}{13}{section.2.2}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.8}{Setting up the cube map for rendering}}{13}{lstlisting.2.8}}
+\newlabel{list-cube-tex}{{2.8}{13}{Omnidirectional Shadowmapping}{lstlisting.2.8}{}}
+\citation{cubetex}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}Radiosity}{14}{section.2.3}}
+\newlabel{section-radiosity}{{2.3}{14}{Radiosity}{section.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}The Rendering Equation}{14}{subsection.2.3.1}}
+\newlabel{section-renderingequation}{{2.3.1}{14}{The Rendering Equation}{subsection.2.3.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.3}{\ignorespaces A visual representation of the rendering equation, with symbolic values annotated.}}{15}{figure.2.3}}
+\newlabel{fig-rendering-eq}{{2.3}{15}{A visual representation of the rendering equation, with symbolic values annotated}{figure.2.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}The Patch Method}{16}{subsection.2.3.2}}
+\citation{radiosity}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2.9}{A single patch distributing its energy to other patches in the scene.}}{17}{lstlisting.2.9}}
+\newlabel{list-patchDist}{{2.9}{17}{The Patch Method}{lstlisting.2.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3.3}Screen-Space Methodology}{18}{subsection.2.3.3}}
+\newlabel{section-ssradiosity}{{2.3.3}{18}{Screen-Space Methodology}{subsection.2.3.3}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Monte Carlo Integration}{18}{section*.6}}
+\citation{deep-g-buffer}
+\@writefile{toc}{\contentsline {subsubsection}{Quasi-Monte Carlo}{19}{section*.7}}
+\citation{deep-g-buffer}
+\citation{VV11AlchemyAO}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.4}{\ignorespaces Demonstrates the consequence of different parameters for the spiral curve.}}{20}{figure.2.4}}
+\newlabel{fig-spiralparam}{{2.4}{20}{Demonstrates the consequence of different parameters for the spiral curve}{figure.2.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}SSAO}{20}{section.2.4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.5}{\ignorespaces Unfiltered Radiosity result showing high level of random noise}}{21}{figure.2.5}}
+\newlabel{fig-noise}{{2.5}{21}{Unfiltered Radiosity result showing high level of random noise}{figure.2.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Filtering}{21}{section.2.5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5.1}Gaussian Filtering}{21}{subsection.2.5.1}}
+\newlabel{section-gauss}{{2.5.1}{21}{Gaussian Filtering}{subsection.2.5.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.6}{\ignorespaces Gaussian Function plot with $\mu = 1$ and $\sigma = 1$}}{22}{figure.2.6}}
+\newlabel{fig-gauss}{{2.6}{22}{Gaussian Function plot with $\mu = 1$ and $\sigma = 1$}{figure.2.6}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Image Filter}{22}{section*.8}}
+\citation{bilat}
+\@writefile{lof}{\contentsline {figure}{\numberline {2.7}{\ignorespaces The Gaussian filter applied to an 11x11 black square with a single white pixel. Right hand side is after the filter has been applied}}{23}{figure.2.7}}
+\newlabel{fig-gauss-applied}{{2.7}{23}{The Gaussian filter applied to an 11x11 black square with a single white pixel. Right hand side is after the filter has been applied}{figure.2.7}{}}
+\@writefile{toc}{\contentsline {subsubsection}{Modifications}{23}{section*.9}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Implementation}{25}{chapter.3}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Design Overview}{25}{section.3.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}General Utility}{25}{section.3.2}}
+\@writefile{toc}{\contentsline {paragraph}{The Full-Screen Quad (FSQuad}{25}{section*.10}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.1}MyUtility.h}{25}{lstlisting.3.1}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.2}MyUtility.cpp}{26}{lstlisting.3.2}}
+\@writefile{toc}{\contentsline {paragraph}{Mesh Object}{26}{section*.11}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.3}MeshObject.cpp}{26}{lstlisting.3.3}}
+\@writefile{toc}{\contentsline {paragraph}{Universal Shaders}{27}{section*.12}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.4}unlayered\_texture.vert}{27}{lstlisting.3.4}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.5}layered\_quad.geom}{27}{lstlisting.3.5}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.6}layered\_texture.frag}{28}{lstlisting.3.6}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}The RenderEngine Class}{28}{section.3.3}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.7}RenderEngine.cpp}{28}{lstlisting.3.7}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.8}RenderEngine.cpp}{29}{lstlisting.3.8}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.9}RenderEngine.cpp}{29}{lstlisting.3.9}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.10}RenderEngine.cpp}{30}{lstlisting.3.10}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}The GBuffer Class}{31}{section.3.4}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.11}GBuffer.cpp}{31}{lstlisting.3.11}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.12}GBuffer.cpp}{32}{lstlisting.3.12}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.13}GBuffer.cpp}{32}{lstlisting.3.13}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.14}GBuffer.cpp}{33}{lstlisting.3.14}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.15}gen\_gbuffer.vert}{33}{lstlisting.3.15}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.16}gen\_gbuffer.geom}{34}{lstlisting.3.16}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.17}gen\_gbuffer.frag}{34}{lstlisting.3.17}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Direct Lighting and Shadowmap}{35}{section.3.5}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.18}light.cpp}{35}{lstlisting.3.18}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.19}light.cpp}{36}{lstlisting.3.19}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.20}shadow\_gen.geom}{36}{lstlisting.3.20}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.21}shadow\_gen.frag}{36}{lstlisting.3.21}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.22}Filters.cpp}{37}{lstlisting.3.22}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.23}Filters.cpp}{37}{lstlisting.3.23}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.24}lambert.frag}{38}{lstlisting.3.24}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.25}lambert.frag}{38}{lstlisting.3.25}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Filters}{38}{section.3.6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6.1}Radiosity}{38}{subsection.3.6.1}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.26}Filters.cpp}{38}{lstlisting.3.26}}
+\citation{deep-g-buffer}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.27}Filters.cpp}{39}{lstlisting.3.27}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.28}apply\_rad\_bounce.frag}{39}{lstlisting.3.28}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.29}apply\_rad\_bounce.frag}{40}{lstlisting.3.29}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.30}apply\_rad\_bounce.frag}{40}{lstlisting.3.30}}
+\citation{VV11AlchemyAO}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6.2}SSAO}{41}{subsection.3.6.2}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.31}apply\_ssao.frag}{41}{lstlisting.3.31}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.32}apply\_ssao.frag}{41}{lstlisting.3.32}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6.3}Gaussian Filter}{42}{subsection.3.6.3}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.33}Filters.cpp}{42}{lstlisting.3.33}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.34}bilat\_hor.frag}{43}{lstlisting.3.34}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.35}bilat\_hor.frag}{44}{lstlisting.3.35}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.36}Filters.cpp}{44}{lstlisting.3.36}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3.37}bilat\_vert\_wblend.frag}{44}{lstlisting.3.37}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Results \& Discussion}{45}{chapter.4}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Deep G-buffer Generation}{45}{section.4.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1.1}Discussion}{45}{subsection.4.1.1}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Table with resulting Normal and Depth textures from the G-buffer generation.}}{46}{table.4.1}}
+\newlabel{table-buffers}{{4.1}{46}{Table with resulting Normal and Depth textures from the G-buffer generation}{table.4.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Table of G-buffer generation times.}}{46}{table.4.2}}
+\newlabel{table-gbuffer-time}{{4.2}{46}{Table of G-buffer generation times}{table.4.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Lambertian and Shadow Mapping}{46}{section.4.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2.1}Discussion}{46}{subsection.4.2.1}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.3}{\ignorespaces Tests done on lambertian shading and shadow map generation. Shadowmap Time denotes the time spent to generate the shadow map.}}{47}{table.4.3}}
+\newlabel{table-lambert}{{4.3}{47}{Tests done on lambertian shading and shadow map generation. Shadowmap Time denotes the time spent to generate the shadow map}{table.4.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Radiosity}{47}{section.4.3}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.4}{\ignorespaces Table of frame times based on sample taps used to approximate radiosity. Time is for 2 bounces of radiosity.}}{48}{table.4.4}}
+\newlabel{table-rad-samples}{{4.4}{48}{Table of frame times based on sample taps used to approximate radiosity. Time is for 2 bounces of radiosity}{table.4.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.5}{\ignorespaces Table for the number of radiosity bounces used. Sample taps is 20.}}{48}{table.4.5}}
+\newlabel{table-rad-bounces}{{4.5}{48}{Table for the number of radiosity bounces used. Sample taps is 20}{table.4.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces Radiosity control scene (\emph  {Conference}). 2 bounces, 23 samples. Time: 32.5ms}}{48}{figure.4.1}}
+\newlabel{fig-rad-comparison}{{4.1}{48}{Radiosity control scene (\emph {Conference}). 2 bounces, 23 samples. Time: 32.5ms}{figure.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3.1}Discussion}{48}{subsection.4.3.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}SSAO}{49}{section.4.4}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.6}{\ignorespaces Time to draw SSAO based on number of samples.}}{49}{table.4.6}}
+\newlabel{table-ssao-samples}{{4.6}{49}{Time to draw SSAO based on number of samples}{table.4.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}Discussion}{49}{subsection.4.4.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Gaussian Filter}{50}{section.4.5}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.7}{\ignorespaces Gussian filtering on SSAO. Radius = 20}}{50}{table.4.7}}
+\newlabel{table-gauss-ssao}{{4.7}{50}{Gussian filtering on SSAO. Radius = 20}{table.4.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.8}{\ignorespaces Gussian filtering on Radiosity bounce. Gauss radius = 20, 2 bounces, 23 samples.}}{50}{table.4.8}}
+\newlabel{table-gauss-rad}{{4.8}{50}{Gussian filtering on Radiosity bounce. Gauss radius = 20, 2 bounces, 23 samples}{table.4.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}Discussion}{50}{subsection.4.5.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Composite Rendering}{51}{section.4.6}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.9}{\ignorespaces Time to draw the final scene with one or two layers of G-buffer. Samples = 23, Radiosity bounces = 1.}}{51}{table.4.9}}
+\newlabel{table-final}{{4.9}{51}{Time to draw the final scene with one or two layers of G-buffer. Samples = 23, Radiosity bounces = 1}{table.4.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6.1}Discussion}{51}{subsection.4.6.1}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.10}{\ignorespaces Demonstrating advantage of deep G-buffer.}}{52}{table.4.10}}
+\newlabel{table-provingapoint}{{4.10}{52}{Demonstrating advantage of deep G-buffer}{table.4.10}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Conclusion}{53}{chapter.5}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\bibcite{radiosity}{1}
+\bibcite{deep-g-buffer}{2}
+\bibcite{deferred}{3}
+\bibcite{bilat}{4}
+\bibcite{cubetex}{5}
+\bibcite{VV11AlchemyAO}{6}

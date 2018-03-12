@@ -1,0 +1,5 @@
+with occlusion
+dragon: 0.36ms
+
+without occlusion
+dragon: 0.36ms

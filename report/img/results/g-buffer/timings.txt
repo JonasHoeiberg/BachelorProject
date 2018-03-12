@@ -1,0 +1,6 @@
+one layer
+dragon: 2.95ms
+
+two layers
+dragon: 5.62ms
+comparison: 2.57ms

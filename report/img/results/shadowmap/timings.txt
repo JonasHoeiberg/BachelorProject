@@ -1,0 +1,6 @@
+480*480
+dragon: 10.4ms
+
+1024*1024
+dragon: 10.6ms
+conference: 4.90ms

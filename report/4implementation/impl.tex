@@ -1,0 +1,973 @@
+\chapter{Implementation}
+\section{Design Overview}
+All code written for this project is part of an overall framework I wrote myself, which maintains everything that is not directly relevant to the project at hand. As such, I will not document the framework itself in-depth here. In general it manages camera movement based on input, timings, drawing and handling of debug console input etc. Most of this is handled through a rudimentary messaging system that manages data sent between different parts of the application..In this section I will start out by going through some general utility used broadly in the application, go through the central RenderEngine class, and finally explain, in broad strokes, how the different implemented filters function.
+
+\section{General Utility}
+
+\paragraph{The Full-Screen Quad (FSQuad}
+Every time I apply an effect through deferred rendering I need to rasterise a full-screen quad. To ease this process, I have defined a static class in MyUtility.h that initialises a Vertex Array Object (VAO) for a full-screen quad, as well as its projection-view matrix. This allows me to just bind the VAO, and get the PV matrix without having to have local copies for applying every one of the filters. I am effectively trading performance for less code clutter with this, since accessing a static element in memory is generally slower than a class accessing a member.
+
+The class is defined like so:
+\begin{lstlisting}[caption={MyUtility.h},language=c++]
+class FSQuad {
+public:
+    static void setupQuad();
+    static GLuint getVAO();
+    static const glm::mat4& getPV();
+    static GLuint getNoIndices();
+private:
+    static glm::mat4 PV;
+    static GLuint VAO;
+    static GLuint noIndices;
+};
+\end{lstlisting}
+
+And VAO and PV are initialised like so:
+\begin{lstlisting}[caption={MyUtility.cpp},language=c++]
+void FSQuad::setupQuad(){
+
+
+	std::vector<Vertex> vertices = {Vertex(glm::vec3(-0.5f,-0.5f,0),glm::vec3(0,0,-1),glm::vec2(0,0)),
+									Vertex(glm::vec3(-0.5f,0.5f,0),glm::vec3(0,0,-1),glm::vec2(0,1)),
+									Vertex(glm::vec3(0.5f,-0.5f,0),glm::vec3(0,0,-1),glm::vec2(1,0)),
+									Vertex(glm::vec3(0.5f,0.5f,0),glm::vec3(0,0,-1),glm::vec2(1,1))
+	};
+
+	std::vector<GLuint> indices = {0,1,2,1,2,3};
+
+	MeshObject quad = MeshObject(vertices,indices);
+
+	VAO = quad.getVAO();
+
+	PV = glm::ortho( -0.5f,0.5f,-0.5f,0.5f,-1.0f,1.0f)*
+		 glm::lookAt(glm::fvec3(0,0,0),glm::fvec3(0,0,-1),glm::fvec3(0,1,0));
+
+	noIndices = quad.getNoIndices();
+}
+\end{lstlisting}
+It is important that \verb=FSQuad::setupQuad()= is run somewhere in the program \emph{before} it is used.
+
+\paragraph{Mesh Object}
+The Mesh Object class manages a single mesh. Its constructor takes either dynamic arrays of geometry data or AssImp data pointers to generate a VAO that holds information on vertex attribute locations. It also save the total number of indices in the element buffer. I interleave the geometric data because it's much more effective than uploading the data into separate arrays. Here's the VAO generation:
+
+\begin{lstlisting}[caption={MeshObject.cpp},language=c++]
+void MeshObject::setupVAO(std::vector<Vertex> const &vertices, std::vector<GLuint> const &indices) {
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    GLuint vbuffer;
+    glGenBuffers(1, &vbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &(vertices[0]), GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, UV));
+
+    GLuint ibuffer;
+    glGenBuffers(1, &ibuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
+
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &(indices[0]), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    noIndices = indices.size();
+
+    std::cout << "A new mesh was added with " << noIndices << " indices" << std::endl;
+}
+\end{lstlisting}
+
+I use a standardised vertex format in which vertex positions are at location 0, normals at location 1 and UVs (when relevant) are at location 2.
+
+\paragraph{Universal Shaders}
+I have a number of universal vertex and geometry shaders that are used to rasterise the full-screen quad for deferred rendering. Which I use for a certain purpose depends primarily on whether or not the render target or source texture are layered. The following vertex shader is used to rasterize a quad when the render-target is single-layered:
+\begin{lstlisting}[caption={unlayered\_texture.vert},language=GLSL]
+#version 330
+
+layout(location=0)in vec3 position;
+layout(location=2)in vec2 UVIn;
+
+uniform mat4 pvm;
+
+out vec2 UV;
+out vec4 pos;
+
+void main() {
+    pos = pvm * vec4(position,1);
+    gl_Position = pos;
+    UV = UVIn;
+}
+\end{lstlisting}
+
+The only difference between this and the one intended for 2-layered render targets, is that the latter does not set \verb=gl_Position=, since that is done in the geometry shader:
+
+\begin{lstlisting}[caption={layered\_quad.geom},language=GLSL]
+#version 330
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices=6) out;
+
+in vec2 UV[];
+in vec4 pos[];
+
+out vec2 fragUV;
+out vec2 windowSpace;
+flat out int layer;
+
+void main() {
+    gl_Layer = 0;
+    layer = 0;
+    for(int i = 0; i < 3; i++) {
+        gl_Position = pos[i];
+        fragUV = UV[i];
+        EmitVertex();
+    }
+    EndPrimitive();
+
+    gl_Layer = 1;
+    layer = 1;
+    for(int i = 0; i < 3; i++) {
+        gl_Position = pos[i];
+        fragUV = UV[i];
+        EmitVertex();
+    }
+    EndPrimitive();
+}
+\end{lstlisting}
+
+I draw to the backbuffer with one of two fragment shaders based on whether or not the texture being drawn is layered. For layered textures it is possible to change layer with the command \verb=drawlayer X=, where \verb=X= is either 0 or 1.
+
+\begin{lstlisting}[caption={layered\_texture.frag},language=GLSL]
+#version 330
+
+in vec2 UV;
+
+uniform sampler2DArray texture_uniform;
+uniform int layer;
+
+out vec4 fragColor;
+
+void main() {
+    fragColor = texture(texture_uniform, vec3(UV,layer)).rgba;
+}
+\end{lstlisting}
+
+The only difference for non-layered textures is that the \verb=sampler2DArray= is a \verb=sampler2D=, and I index into it with just the UVs.
+
+\section{The RenderEngine Class}
+\verb=RenderEngine.h= and \verb=RenderEngine.cpp=
+
+The RenderEngine class is the central piece in the rendering loop. That is to say its main purpose is to be a collector of all scene information, the g-buffer and filters. It also ensures that all relevant elements have been initialised and updates the backbuffer every frame and ensures that all relevant filters have been run.
+
+This is the RenderEngine initialisation function:
+\begin{lstlisting}[caption={RenderEngine.cpp},language=c++]
+bool RenderEngine::initEngine(int width, int height) {
+
+	this->width = width;
+	this->height = height;
+
+	glfwSetInputMode(context,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+
+	glViewport(0,0,width,height);
+	glClearColor(0,0,0,1);
+
+	updateBuffers(context,width,height);
+
+	parseImportFile("res/models/cornell-box/CornellBox-Original.obj");
+
+	lights.push_back(Light(glm::vec3(0.0f,1.8f,0.0f),glm::vec3(4.0f,4.0f,4.0f)));
+
+	dbg.addTimer(time.getName(),time.getAvgTimePtr());
+	time.activate();
+
+	initTextures(width,height);
+
+	FSQuad::setupQuad();
+
+	check_gl_error();
+}
+\end{lstlisting}
+It sets the viewport, ensures that all buffers have the right dimensions, imports geometry from a file, adds a light and sets up a timer. While FSQuad is a static class and not a member of RenderEngine, I consider it under its responsibilities to initialise it. It also initialises all the textures containing the final results produced by the filters:
+
+\begin{lstlisting}[caption={RenderEngine.cpp},language=c++]
+glBindTexture(GL_TEXTURE_2D_ARRAY,radTot);
+
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+glTexImage3D(GL_TEXTURE_2D_ARRAY,0,GL_R11F_G11F_B10F,width,height,2,0,GL_RGB,GL_FLOAT,0);
+
+glGenTextures(1, &radPrev);
+glBindTexture(GL_TEXTURE_2D_ARRAY,radPrev);
+
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+glTexImage3D(GL_TEXTURE_2D_ARRAY,0,GL_R11F_G11F_B10F,width,height,2,0,GL_RGB,GL_FLOAT,0);
+
+glBindTexture(GL_TEXTURE_2D_ARRAY,0);
+
+glGenTextures(1, &alchAO);
+glBindTexture(GL_TEXTURE_2D,alchAO);
+
+glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+glTexImage2D(GL_TEXTURE_2D,0,GL_R32F,width,height,0,GL_RED,GL_FLOAT,0);
+
+glBindTexture(GL_TEXTURE_2D,0);
+\end{lstlisting}
+I use \verb=11_11_10= textures for the radiosity targets, which are float textures with 11-bit precision for red and green channels and 10 bits of precision for the blue channel. They take up the same amount of memory as RGBA textures, but allow more precision. I have both a total and a previous bounce target for radiosity, since I need the previous bounce to calculate subsequent bounces of radiosity.
+
+\begin{lstlisting}[caption={RenderEngine.cpp},language=c++]
+void RenderEngine::draw() {
+
+    dt = glfwGetTime() - prevTime;
+    prevTime = glfwGetTime();
+
+    static LambertianFilter lambert = LambertianFilter(width,height,radPrev,radTot);
+    static RadiosityFilter radFilter = RadiosityFilter(width,height,radPrev,radTot);
+	static AOFilter ssaoFilter = AOFilter(width,height,alchAO);	
+	
+    parseRenderMessages();
+
+    cam.update();
+
+    time.startTimer();
+
+    buffer.generate(&meshes, &cam);
+
+    for(int i = 0; i < lights.size(); i++) {
+        lights[i].genShadowMap(&cam,&meshes);
+    }
+
+    glViewport(0,0,width,height);
+
+    lambert.applyLambertian(&cam, &buffer, lights);
+    for(int i = 0; i < bounces; i++) {
+        radFilter.applyBounce(&cam,&buffer);
+    }
+
+    time.endTimer();
+
+    glClearColor(0,1,0,1);
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+    //Render to backbuffer.
+
+    //Render to backbuffer.
+	if(backBufferTexture != -1)
+		renderTextureLevel(backBufferTexture,backBufferLayer);
+	else
+		renderComposite();
+
+    dbg.draw();
+
+    glfwSwapBuffers(context);
+
+    check_gl_error();
+}
+\end{lstlisting}
+The most relevant part of the class is the \verb=draw()= function, which tells the light and G-buffer to generate their respective textures, such that they are ready to be used for the filters. It then runs all filters before drawing to the backbuffer. Whether to draw the final composited image or an off-screen buffer, and which buffer to draw, can be set with console commands. All filters are static members of the function, since there's no need for them outside of it. When they are constructed, they also receive any target or source texture they may need that are not part of the G-buffer or themselves exclusively. This is done to allow for the FBO to be set up once, without needing to swap around colour attachments.
+
+If the user has asked for an off-screen buffer, the following function makes sure to draw it to the backbuffer:
+\begin{lstlisting}[caption={RenderEngine.cpp},language=c++]
+void RenderEngine::renderTextureLevel(GLuint texture, unsigned short int layer) {
+	static Shader::ShaderProgram tex_shader = Shader::ShaderProgram("../shaders/texture_quad.vert","../shaders/layered_texture.frag");
+	static Shader::ShaderProgram nolayers_tex_shader = Shader::ShaderProgram("../shaders/texture_quad.vert","../shaders/unlayered_texture.frag");
+
+	glBindVertexArray(FSQuad::getVAO());
+
+	glm::mat4 pvm = FSQuad::getPV();
+
+	if(isLayered) {
+
+		tex_shader.use();
+
+		glUniformMatrix4fv(tex_shader.get_U_Location(Shader::U_M_PVM), 1, GL_FALSE, glm::value_ptr(pvm));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+		glUniform1i(tex_shader.get_U_Location(Shader::U_I_TEXTURE), 0);
+
+		glUniform1i(tex_shader.get_U_Location(Shader::U_I_LAYER), layer);
+
+		glDrawElements(GL_TRIANGLES, FSQuad::getNoIndices(), GL_UNSIGNED_INT, (void *) 0);
+	} else {
+
+		nolayers_tex_shader.use();
+
+		glUniformMatrix4fv(nolayers_tex_shader.get_U_Location(Shader::U_M_PVM), 1, GL_FALSE, glm::value_ptr(pvm));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glUniform1i(nolayers_tex_shader.get_U_Location(Shader::U_I_TEXTURE), 0);
+
+		glDrawElements(GL_TRIANGLES, FSQuad::getNoIndices(), GL_UNSIGNED_INT, (void *) 0);
+	}
+}
+\end{lstlisting}
+There are two different cases depending on whether or not the off-screen buffer is layered or not.
+
+\section{The GBuffer Class}
+
+The Gbuffer class constructor ensures that everything needed to generate our G-buffer is generated and initialised. The shader is initialised in the initialiser list. I use a geometry shader to emit primitives to both layers of the buffers.
+
+\begin{lstlisting}[caption={GBuffer.cpp},language=c++]
+GBuffer::GBuffer(int width, int height) :
+gen_shader("../shaders/gen_gbuffer.vert","../shaders/gen_gbuffer.frag","../shaders/gen_gbuffer.geom")
+{
+	this->width = width;
+	this->height = height;
+
+	check_gl_error();
+
+	setupTextures();
+
+	check_gl_error();
+}
+\end{lstlisting}
+
+The \verb=setupTextures()= function generates and sets up the FBO and textures. The textures are not actually tied to their relevant attachment points on the FBO yet, since I actually need to switch the depth attachment around every frame.
+All texture initialisation is a variation of the following (sometimes they have different internal formats based on the type of data they need to contain):
+
+\begin{lstlisting}[caption={GBuffer.cpp},language=c++]
+glGenTextures(1, &depths);
+glBindTexture(GL_TEXTURE_2D_ARRAY,depths);
+
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+glTexImage3D(GL_TEXTURE_2D_ARRAY,0,GL_DEPTH_COMPONENT32F,width,height,2,0,GL_DEPTH_COMPONENT,GL_FLOAT,0);
+\end{lstlisting}
+
+All render target textures in the product are set with the filtering as \verb=GL_NEAREST=, since linear filtering can cause some weird results with deferred rendering targets. The G-buffer class has a total of five textures, normals, diffuse reflectance, specular reflectance and two depth buffers. I use 32-bit float depth components to get more precision when regenerating positions.
+
+Once setup is done, the function \verb=generate()= takes a dynamic array of meshes and a camera to write the geometry data to its textures. First it sets up its render targets
+
+\begin{lstlisting}[caption={GBuffer.cpp},language=c++]
+glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+
+currentState = !currentState;
+
+GLuint activeDepth = currentState ? depths : depths2;
+GLuint depthToPass = currentState ? depths2 : depths;
+
+glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,activeDepth,0);
+glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,normals,0);
+glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,diffColors,0);
+glFramebufferTexture(GL_DRAW_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,specColors,0);
+
+GLuint buffers[3] = {GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
+
+glDrawBuffers(3,buffers);
+\end{lstlisting}
+
+I swap around the depth attachment each frame, so that I can use that of the previous frame to determine whether or not a fragment belongs in the second layer.
+
+After this has been done, I bind the shader, clear the depth and colour buffers and upload the uniforms needed for the generation in general, and loop through the meshes to draw them one at a time. For each mesh I set its diffuse and specular reflectance as uniforms. All models used are defined in such a way that no model matrix is needed.
+
+\begin{lstlisting}[caption={GBuffer.cpp},language=c++]
+[...]clear buffers, set states as needed
+
+gen_shader.use();
+
+glActiveTexture(GL_TEXTURE0);
+glBindTexture(GL_TEXTURE_2D_ARRAY, depthToPass);
+glUniform1i(gen_shader.get_U_Location(Shader::U_I_DEPTH_TEX),0);
+
+[...]//Get projection and view matrices from Camera.
+
+glUniformMatrix4fv(gen_shader.get_U_Location(Shader::U_M_VM),1,GL_FALSE,glm::value_ptr(vm));
+
+glUniformMatrix4fv(gen_shader.get_U_Location(Shader::U_M_PVM),1,GL_FALSE,glm::value_ptr(pvm));
+
+glUniform1f(gen_shader.get_U_Location(Shader::U_F_FARPLANE),cam->farPlane);
+glUniform1f(gen_shader.get_U_Location(Shader::U_F_NEARPLANE),cam->nearPlane);
+
+for(std::vector<MeshObject>::iterator iter = meshes->begin(); iter != meshes->end();iter++) {
+	glBindVertexArray(iter->getVAO());
+
+	glUniform4fv(gen_shader.get_U_Location(Shader::U_V4_DIFF_COL),1,glm::value_ptr(iter->diffColor));
+	glUniform4fv(gen_shader.get_U_Location(Shader::U_V4_SPEC_COL),1,glm::value_ptr(iter->specColor));
+	glDrawElements(GL_TRIANGLES,iter->getNoIndices(),GL_UNSIGNED_INT,(void*) 0);
+}
+\end{lstlisting}
+
+My Shader class buffers all uniform addresses for a shader in a map, which you access with an \verb=enum=, which is why the uniform uploads might look a little wonky. Once the scene has been drawn, the G-buffer textures are ready to be used. I use the following shaders for the pipeline. The vertex shader is fairly par for the course:
+
+\begin{lstlisting}[caption={gen\_gbuffer.vert},language=GLSL]
+#version 330
+
+layout(location=0) in vec3 position;
+layout(location=1) in vec3 normal;
+
+uniform mat4 pvm;
+uniform mat4 vm;
+
+out vec3 outNormal;
+out vec4 outPos;
+out vec2 screenUV;
+out vec4 screenPos;
+
+void main() {
+	outNormal = mat3(vm) * normal;
+	outPos = pvm * vec4(position,1);
+	screenPos = vm * vec4(position,1);
+	screenUV = vec4((outPos/outPos.w + 1) / 2).xy;
+}
+\end{lstlisting}
+
+The only slightly unusual thing here is that I use \verb=layout(location)= qualifiers for the vertex attributes. I do this because it allows me to have a standardised vertex format, whereby when I set up the attribute pointers for a VAO, I know that positions are in location 0, normals in position 1 and UVs (if it has any) are in position 2. This also allows me to not set vertex attribute pointers every time I draw the scene which leads to better performance and cleaner code. The geometry shader was posted (in large parts at least) in the theory section \ref{list-deepgeom}, this is how it looks specifically:
+
+\begin{lstlisting}[caption={gen\_gbuffer.geom},language=GLSL]
+out vec3 normalIn;
+noperspective out vec2 screenUVFrag;
+out vec3 screenPosFrag;
+flat out int layer;
+
+void main() {
+	layer = 0;
+	gl_Layer = 0;
+	for(int i = 0; i < 3; i++) {
+		normalIn = outNormal[i];
+		screenUVFrag = screenUV[i];
+		screenPosFrag = vec3(screenPos[i]);
+		gl_Position = outPos[i];
+		EmitVertex();
+	}
+	EndPrimitive();
+	
+	layer = 1;
+	gl_Layer = 1;
+	for(int i = 0; i < 3; i++) {
+		normalIn = outNormal[i];
+		screenUVFrag = screenUV[i];
+		screenPosFrag = vec3(screenPos[i]);
+		gl_Position = outPos[i];
+		EmitVertex();
+	}
+	EndPrimitive();
+}
+\end{lstlisting}
+
+All this does is relay the information calculated in the vertex shader to the fragment shader twice, once for each layer. I use the \verb=noperspective= interpolation qualifier on the screen UV coordinates, since they are linear in screen space. Finally, the fragment shader writes to the colour attachments. The fragment shader is fairly big, so I will not list it in its entirety here. The most important part of it is this:
+
+\begin{lstlisting}[caption={gen\_gbuffer.frag},language=GLSL]
+switch(layer) {
+case 0:
+	normal = normalize(normalIn).xyz;
+	diffColor = vec4(diff_color.xyz,1.0f);
+	specColor = vec4(spec_color.xyz,spec_color.w/128.0f);
+break;
+case 1:
+
+	if(linearDepth(gl_FragCoord.z) <= linearDepth(texture(depth_texture,vec3(screenUVFrag,0)).r) + 0.01f)
+		discard;
+	else {
+		normal = normalize(normalIn).xyz;
+		diffColor = vec4(diff_color.xyz,1.0f);
+		specColor = vec4(spec_color.xyz,spec_color.w/128.0f);
+	}
+break;
+}
+\end{lstlisting}
+
+What this means is that for fragments being written to layer 1 of our G-buffer, it writes the data as it would with a regular flat G-buffer. If it is being written to layer 2, however, it tests to see if it lies behind the minimal layer of separation ($0.01$ here) from the first layer of the comparison depth buffer, write the data, otherwise discard the fragment. I write the shininess of the material to the alpha channel of the specular colour divided by 128. Not having this in a separate texture with more precision means that there is only going to be 255 discretely different possible exponents. Since the shininess was never meant to give precise reflections (at least not in a rasteriser pipeline,) however, this imprecision is of minimal importance.
+
+In order to gain access to the G-buffer textures, other classes can use the \verb=getBuffer()= function that takes an enum representing a buffer, and returns the pointer (\verb=GLuint=) to the texture.
+
+\section{Direct Lighting and Shadowmap}
+
+Shadow map generation is managed by the Light class in \verb=light.cpp=. They are generated by rasterising the geometry of the scene unto a cube-map in a single pass. In order to do so, I first need to set up the proper look-ats for every direction of the cube map, which is done like this:
+\begin{lstlisting}[caption={light.cpp},language=c++]
+glm::mat4 projection = glm::perspective(glm::pi<float>()/2.0f,1.0f,cam->nearPlane,cam->farPlane);
+
+glm::mat4 pvms[6] = {projection * glm::lookAt(position,position + glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+           projection * glm::lookAt(position,position + glm::vec3(-1.0f,0.0f,0.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+           projection * glm::lookAt(position,position + glm::vec3(0.0f,1.0f,0.0f),glm::vec3(0.0f,0.0f,1.0f)),
+           projection * glm::lookAt(position,position + glm::vec3(0.0f,-1.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f)),
+           projection * glm::lookAt(position,position + glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+           projection * glm::lookAt(position,position + glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,-1.0f,0.0f))
+};
+
+glm::mat4 vms[6] = {glm::lookAt(position,position + glm::vec3(1.0f,0.0f,0.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+          glm::lookAt(position,position + glm::vec3(-1.0f,0.0f,0.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+          glm::lookAt(position,position + glm::vec3(0.0f,1.0f,0.0f),glm::vec3(0.0f,0.0f,1.0f)),
+          glm::lookAt(position,position + glm::vec3(0.0f,-1.0f,0.0f),glm::vec3(0.0f,0.0f,-1.0f)),
+          glm::lookAt(position,position + glm::vec3(0.0f,0.0f,1.0f),glm::vec3(0.0f,-1.0f,0.0f)),
+          glm::lookAt(position,position + glm::vec3(0.0f,0.0f,-1.0f),glm::vec3(0.0f,-1.0f,0.0f))
+};
+
+glUniformMatrix4fv(program.get_U_Location(Shader::U_M_PVM),6,GL_FALSE,glm::value_ptr(pvms[0]));
+
+glUniformMatrix4fv(program.get_U_Location(Shader::U_M_VM),6,GL_FALSE,glm::value_ptr(vms[0]));
+\end{lstlisting}
+I generate view-matrices on top of projection-view matrices, since I need the view-matrix to determine the length of the position vector. The indices of the matrices were found in accordance with the OpenGL cubemap specification.
+
+When the projection-view matrices have been generated I loop through all geometry passed to the function and draw them to the cube map.
+\begin{lstlisting}[caption={light.cpp},language=c++]
+glUniform1f(program.get_U_Location(Shader::U_F_FARPLANE),cam->farPlane);
+
+for(std::vector<MeshObject>::iterator iter = meshes->begin(); iter != meshes->end();iter++) {
+  glBindVertexArray(iter->getVAO());
+
+  glDrawElements(GL_TRIANGLES,iter->getNoIndices(),GL_UNSIGNED_INT,(void*) 0);
+}
+\end{lstlisting}
+
+In order to do the generation in a single step, I need a geometry shader that simply loops through primitives six times, to relay the geometry to the fragment shader for all six layers of the cube map:
+\begin{lstlisting}[caption={shadow\_gen.geom},language=GLSL]
+#version 330
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices=18) out;
+
+in vec4 outPos[];
+
+uniform mat4 pvm[6];
+uniform mat4 vm[6];
+
+out vec3 fragPos;
+
+void main() {
+	for(int i = 0; i < 6; i++) {
+		gl_Layer = i;
+		for(int j = 0; j < 3; j++) {
+			fragPos = (vm[i] * outPos[j]).xyz;
+
+			gl_Position = pvm[i] * outPos[j];
+			EmitVertex();
+		}
+		EndPrimitive();
+	}
+}
+\end{lstlisting}
+
+Finally I write the length of the interpolated verex position divided by the far plane to the fragment. I divide by the far plane, since depth component values run between 0 and 1.
+\begin{lstlisting}[caption={shadow\_gen.frag},language=GLSL]
+#version 330
+
+in vec3 fragPos;
+
+uniform float far_plane;
+
+void main() {
+	gl_FragDepth = length(fragPos)/far_plane;
+}
+\end{lstlisting}
+
+Once I have the shadow map, I can run the Lambertian shader. In order to reconstruct the position and find the world-space coordinates needed to determine occlusion, I need to upload the inverse projection matrix as well as the inverse view-matrix:
+\begin{lstlisting}[caption={Filters.cpp},language=c++]
+glm::mat4 invProjection = glm::inverse(cam->getProjection());
+
+glUniformMatrix4fv(program.get_U_Location(Shader::U_M_VUNPROJECT),1,GL_FALSE,glm::value_ptr(invProjection));
+
+glUniformMatrix4fv(program.get_U_Location(Shader::U_M_UNVIEW),1,GL_FALSE,glm::value_ptr(glm::inverse(cam->getLookAt())));
+\end{lstlisting}
+
+I then loop through all light sources with additive blending enabled, to get both direct illumination as well as the value I will use to determine the first radiosity bounce. This is possible because I're using deferred rendering.
+\begin{lstlisting}[caption={Filters.cpp},language=c++]
+for(int i = 0; i < lights.size(); i++) {
+  glm::vec3 lightPos = lights[i].getPosition();
+  glm::vec3 lightIntensity = lights[i].getIntensity();
+
+  glUniform3fv(program.get_U_Location(Shader::U_V3_LIGHTPOS), 1, glm::value_ptr(lightPos));
+
+  glUniform3fv(program.get_U_Location(Shader::U_V3_LIGHT_INTENSITY), 1, glm::value_ptr(lightIntensity));
+
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_CUBE_MAP,lights[i].getShadowMap());
+  glUniform1i(program.get_U_Location(Shader::U_I_SHADOWMAP),3);
+
+  check_gl_error();
+
+  glDrawElements(GL_TRIANGLES, FSQuad::getNoIndices(), GL_UNSIGNED_INT, (void *) 0);
+}
+\end{lstlisting}
+
+The fragment shader used to determine the Lambertian term is \verb=lambert.frag=. In order to determine the position, I need to reconstruct it from the depth. For this I use the following function, which is a direct implementation of the function described under Theory.
+\begin{lstlisting}[language=GLSL]
+vec3 regenPos(float tex_depth, vec2 winSpace) {
+	vec4 v_screen = vec4(winSpace.xy,tex_depth,1.0);
+	vec4 v_homo = viewUnproject * (2.0 * (v_screen - vec4(0.5)));
+
+	return v_homo.xyz/v_homo.w;
+}
+\end{lstlisting}
+
+I determine the world-space position by first reconstructing it from the depth buffer, and then multiplying it by the inverse view matrix. The normal is read directly and then multiplied by a \verb=mat3=-casted inverse view matrix (since it's a direction.)
+\begin{lstlisting}[caption={lambert.frag},language=GLSL]
+float Z_value = texture(depth_texture,vec3(fragUV.xy,float(layer))).r;
+
+if(Z_value == 1.0f) {
+  nextBounce = vec3(0.0f);
+  total = vec3(0.0f);
+  discard;
+}
+
+vec3 viewPos = regenPos(Z_value,fragUV.xy);
+vec4 diff_color = texture(diff_texture,vec3(fragUV.xy,float(layer)));
+vec3 viewNormal = texture(norm_texture,vec3(fragUV.xy,float(layer))).xyz;
+
+vec3 worldPos = vec4(invView * vec4(viewPos,1.0f)).xyz;
+vec3 worldNorm = mat3(invView) * viewNormal;
+\end{lstlisting}
+
+I now have all the values needed to do our lambertian shading. I multiply the lambertian by an attenuation value which varies depending on the scene and the visibility factor. I find the visibility factor by looking up in the shadow map in the direction of the negative \verb=lVector= and comparing that value to the length of the vector from the position to the light divided by the far plane. I subtract a bias to avoid shadow acne. If the depth is closer to or equal length from the light source as the depth value written to the shadow map, the point is not occluded.
+\begin{lstlisting}[caption={lambert.frag},language=GLSL]
+vec3 plVector = light_pos - worldPos;
+vec3 lVector = normalize(plVector);
+float atten = length(plVector);
+
+float shadowDepth = texture(shadowMap,-lVector).r;
+
+float depthToCompare = length(plVector)/far_plane;
+
+float V = 0.0f;
+
+if(depthToCompare - BIAS <= shadowDepth)
+  V = 1.0f;
+
+vec3 radValue = dot(lVector,worldNorm)*(vec3(diff_color)/M_PI)*light_intensity;
+
+nextBounce = (1.0f/(0.5 + 0.7f * atten*atten)) * radValue * V;
+total = (1.0f/(0.5 + 0.7f * atten*atten)) * radValue * V;
+\end{lstlisting}
+
+\section{Filters}
+\subsection{Radiosity}
+The C++ side of the radiosity filter is fairly straight-forward. It sets up the full-screen quad, and uploads the five different textures needed to calculate the next bounce of radiosity. \verb=randTex= is an \verb=R32F= texture containing random values between 0 and $2\pi$ to determine what value to rotate the spiral by when I sample, that is to say $\phi$. The values are unique for each fragment.
+\begin{lstlisting}[caption={Filters.cpp},language=c++]
+void RadiosityFilter::applyBounce(Camera *cam, GBuffer *buffer) {
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+
+	glDisable(GL_DEPTH_TEST);
+
+	program.use();
+
+	glBindVertexArray(FSQuad::getVAO());
+
+	glm::mat4 pvm = FSQuad::getPV();
+
+	glm::mat4 invProjection = glm::inverse(cam->getProjection());
+
+	glUniformMatrix4fv(program.get_U_Location(Shader::U_M_PVM),1,GL_FALSE,glm::value_ptr(pvm));
+
+	glUniformMatrix4fv(program.get_U_Location(Shader::U_M_VUNPROJECT),1,GL_FALSE,
+					   glm::value_ptr(invProjection));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, buffer->getBuffer(e_depths));
+	glUniform1i(program.get_U_Location(Shader::U_I_DEPTH_TEX),0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,buffer->getBuffer(e_normals));
+	glUniform1i(program.get_U_Location(Shader::U_I_NORM_TEX),1);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,buffer->getBuffer(e_diffColors));
+	glUniform1i(program.get_U_Location(Shader::U_I_DIFF_TEX),2);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,prevBounce);
+	glUniform1i(program.get_U_Location(Shader::U_I_PREVRAD),3);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D,randTex);
+	glUniform1i(program.get_U_Location(Shader::U_I_NOISE_TEX),4);
+
+	glDrawElements(GL_TRIANGLES,FSQuad::getNoIndices(),GL_UNSIGNED_INT,(void*) 0);
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+
+	glEnable(GL_DEPTH_TEST);
+
+	gauss.applyGauss(buffer, tempRadTex);
+}
+\end{lstlisting}
+
+This is how I find the values for the random texture:
+\begin{lstlisting}[caption={Filters.cpp},language=c++]
+for(unsigned long int i = 0; i < width*height; i++) {
+
+	float angle = glm::linearRand<float>(0.0f, 2.0f * glm::pi<float>());
+	randNoise[i] = angle;
+}
+\end{lstlisting}
+
+The shader contains the array that determines how many spiral turns to do for a given number of samples from \cite{deep-g-buffer}. In order to determine the number of spiral turns to do I simply index into it by the number of samples - 1 (due to 0-indexing.)
+\begin{lstlisting}[caption={apply\_rad\_bounce.frag},language=GLSL]
+const int tau_array[ ] = {1, 1, 2, 3, 2, 5, 2, 3, 2, 3, 3, 5, 5,
+3, 4, 7, 5, 5, 7, 9, 8, 5, 5, 7, 7, 7, 8, 5, 8, 11, 12, 7,
+10, 13, 8, 11, 8, 7, 14, 11, 11, 13, 12, 13, 19, 17, 13,
+11, 18, 19, 11, 11, 14, 17, 21, 15, 16, 17, 18, 13, 17,
+11, 17, 19, 18, 25, 18, 19, 19, 29, 21, 19, 27, 31, 29, 21,
+18, 17, 29, 31, 31, 23, 18, 25, 26, 25, 23, 19, 34, 19, 27,
+21, 25, 39, 29, 17, 21, 27};
+
+[...]
+
+float tau = float(tau_array[SAMPLES - 1]);
+\end{lstlisting}
+
+First,I reconstruct the scene and initialise all values. Unlike the lambertian shader, positions and normals are reconstructed to view-space, since that is all I need. Unapplying the view-matrix would be an unnecessary cost. If no data has been written to the G-buffer textures the depth-buffer will be at its clear value (1.0,) and I do nothing for the fragment.
+\begin{lstlisting}[caption={apply\_rad\_bounce.frag},language=GLSL]
+float mainZ = texture(depth_texture,vec3(fragUV.xy,float(layer))).r;
+
+if(mainZ == 1.0f) {
+  nextBounce = vec3(0.0f);
+  return;
+}
+
+vec3 mainPos = regenPos(mainZ,fragUV.xy);
+vec4 mainColor = texture(diff_texture,vec3(fragUV.xy,float(layer)));
+vec3 mainNormal = texture(norm_texture,vec3(fragUV.xy,float(layer))).xyz;
+
+
+vec3 totalIrradiance = vec3(0);
+float M = 0.0f;
+
+float phi = texture(noise_tex,fragUV).r;
+\end{lstlisting}
+
+Once initialisation is done, I loop through the number of samples I want, in accordance with the spiral curve and radiosity equation explained in Theory. I only accept samples if they're on the hemisphere of the current fragment, are within screen-space and have had something written to them by the G-buffer.
+\begin{lstlisting}[caption={apply\_rad\_bounce.frag},language=GLSL]
+for(int i = 0; i < SAMPLES; i++) {
+
+  float sigma_i = (i + 0.5f/tau)/float(SAMPLES);
+  float theta_i = 2*M_PI*sigma_i*tau + phi;
+  vec2 u_i = vec2(cos(theta_i),sin(theta_i));
+  float h_i = RADIUS * sigma_i;
+
+  vec2 offSet = vec2(h_i*u_i);
+
+  vec2 offSetUV = fragUV.xy + vec2(offSet.x/WIN_WIDTH,offSet.y/WIN_HEIGHT);
+  
+  vec3 rad_1 = texture(prev_bounce,vec3(offSetUV,0.0)).rgb;
+  float z_1 = texture(depth_texture,vec3(offSetUV,0.0)).r;
+  vec3 pos_1 = regenPos(z_1,offSetUV);
+
+  vec3 omega1 = pos_1 - mainPos;
+  float geom1 = max(0,dot(normalize(omega1),mainNormal));
+
+  vec3 rad_2 =  texture(prev_bounce,vec3(offSetUV,1.0)).rgb;
+  float z_2 = texture(depth_texture,vec3(offSetUV,1.0)).r;
+  vec3 pos_2 = regenPos(z_2,offSetUV);
+
+  vec3 omega2 = pos_2 - mainPos;
+  float geom2 = max(0,dot(normalize(omega2),mainNormal));
+  
+  if(geom1 > 0 &&
+   abs(offSetUV.x - 0.5) <= 0.5 && abs(offSetUV.y - 0.5) <= 0.5 &&
+   z_1 != 1.0f &&
+   length(omega1) < 500.0) {
+    M += 1.0f;
+    totalIrradiance += rad_1.rgb * geom1;
+  }
+
+  if(geom2 > 0 &&
+  abs(offSetUV.x - 0.5) <= 0.5 && abs(offSetUV.y - 0.5) <= 0.5 &&
+  z_2 != 1.0f &&
+  length(omega2) < 500.0) {
+    M += 1.0f;
+    totalIrradiance += rad_2.rgb * geom2;
+  }
+
+}
+
+if(M > 0.1f)
+  totalIrradiance = ((2.0f*M_PI)/M) * totalIrradiance;
+
+vec3 radiosity = totalIrradiance * (mainColor.rgb/M_PI);
+
+nextBounce = radiosity.rgb;
+\end{lstlisting}
+
+\subsection{SSAO}
+The SSAO implementation is very similar to the radiosity one. The only difference is that the per-sample and total calculations have been replaced with the Alchemy AO algorithm\cite{VV11AlchemyAO}. The parameters of the equation change depending on the scene.
+\begin{lstlisting}[caption={apply\_ssao.frag},language=GLSL]
+if(geom1 > 0.0f &&
+ abs(offSetUV.x - 0.5) <= 0.5 && abs(offSetUV.y - 0.5) <= 0.5 &&
+ z_1 != 1.0f &&
+ length(omega1) < OBSCURANCE_RADIUS) {
+    totalAO += max(0,geom1 + mainPos.z * BETA)/(dot(omega1,omega1) + EPSILON);
+    AO_samples += 1.0f;
+}
+
+if(geom2 > 0.0f &&
+abs(offSetUV.x - 0.5) <= 0.5 && abs(offSetUV.y - 0.5) <= 0.5 &&
+z_2 != 1.0f &&
+length(omega2) < OBSCURANCE_RADIUS) {
+    totalAO += max(0,geom2 + mainPos.z * BETA)/(dot(omega2,omega2) + EPSILON);
+    AO_samples += 1.0f;
+}
+\end{lstlisting}
+
+\verb=AO= is the fragment output value.
+\begin{lstlisting}[caption={apply\_ssao.frag},language=GLSL]
+if(AO_samples > 0.1f) {
+    AO = pow(max(0,
+                  1 - (((2*SIGMA)/AO_samples) * totalAO)),K);
+} else
+    AO = 1.0f;
+\end{lstlisting}
+
+I found the following parameters for the Cornell Box and the dragon to give the best results:
+\begin{lstlisting}[language=c++]
+#define EPSILON 1.0f
+#define BETA 10e-4f
+#define K 1.0f
+#define SIGMA 2.0f
+#define OBSCURANCE_RADIUS 0.1f
+\end{lstlisting}
+While the conference room scene has the following parameters:
+\begin{lstlisting}[language=c++]
+#define EPSILON 75.0f
+#define BETA 10e-5f
+#define K 2.0f
+#define SIGMA 250.0f
+#define OBSCURANCE_RADIUS 100.0f
+\end{lstlisting}
+These vary a lot compared to the parameters you usally see for the Alchemy SSAO, since the vertices defined in the OBJ-file have rather large values.
+
+\subsection{Gaussian Filter}
+\verb=filters.cpp=, \verb=bilat_hor.frag= and \verb=bilat_vert.frag=. The version for SSAO has a \verb=1ch= in its name to imply one channel input/output.
+
+I apply the gaussian filter in a two-pass format. Due to this, I actually use two temporary textures to hold the intermediary results; one for the raw radiosity output, one for the result of the horizontal filter. The C++ code is very similar to the other deferred rendering filters. I set up the full-screen quad and upload the relevant buffer textures.
+\begin{lstlisting}[caption={Filters.cpp},language=c++]
+void GaussFilterWBlend::applyGauss(GBuffer *buffer, GLuint srcTex) {
+	glDisable(GL_DEPTH_TEST);
+
+	//Horizontal pass
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+
+	program.use();
+	glBindVertexArray(FSQuad::getVAO());
+
+	glm::mat4 pvm = FSQuad::getPV();
+
+	glUniformMatrix4fv(program.get_U_Location(Shader::U_M_PVM),1,GL_FALSE,glm::value_ptr(pvm));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,srcTex);
+	glUniform1i(program.get_U_Location(Shader::U_I_PREVRAD),0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,buffer->getBuffer(e_depths));
+	glUniform1i(program.get_U_Location(Shader::U_I_DEPTH_TEX),1);
+
+	glDrawElements(GL_TRIANGLES,FSQuad::getNoIndices(),GL_UNSIGNED_INT,(void*) 0);
+
+	//Vertical pass
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,secondPassFBO);
+
+	glEnablei(GL_BLEND,1);
+	glBlendFunc(GL_ONE,GL_ONE);
+	glBlendEquation(GL_FUNC_ADD);
+
+	vert_shader.use();
+	glBindVertexArray(FSQuad::getVAO());
+
+	glUniformMatrix4fv(vert_shader.get_U_Location(Shader::U_M_PVM),1,GL_FALSE,glm::value_ptr(pvm));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY,tempTex);
+	glUniform1i(vert_shader.get_U_Location(Shader::U_I_PREVRAD),0);
+
+	glUniform1i(vert_shader.get_U_Location(Shader::U_I_DEPTH_TEX),1);
+
+	glDrawElements(GL_TRIANGLES,FSQuad::getNoIndices(),GL_UNSIGNED_INT,(void*) 0);
+
+	glDisablei(GL_BLEND,1);
+	glDisable(GL_BLEND);
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
+
+	glEnable(GL_DEPTH_TEST);
+}
+\end{lstlisting}
+You could argue that using two intermediary textures is superfluous and uses more VRAM than necessary. While this is true, I have decided to do it this way to make the code cleaner, easier to read and less interconnected. There're a couple of ways to get around this. One would be to have a single class manage all off-screen render targets, such that there is one or two in abundance. Another would be to swap around textures in the function itself such that the next bounce render target would change places every frame with the intermediary texture.
+
+To apply the gaussian filter we use the Gaussian function defined in the Theory section.
+\begin{lstlisting}[language=GLSL]
+float gaussian(float x, float sigma) {
+  return exp(-(x*x)/
+        (2 * sigma * sigma));
+}
+\end{lstlisting}
+
+I start by initialising values and ensuring that there is something written to the off-screen buffer at the current fragment position.
+\begin{lstlisting}[caption={bilat\_hor.frag},language=GLSL]
+vec3 total_contr = vec3(0);
+float totalWeight = 0.0f;
+
+float mainZ = texture(depth_texture,vec3(fragUV,float(layer))).r;
+
+if(mainZ == 1.0f) {
+  filtered = vec3(0,0,0);
+  return;
+}
+\end{lstlisting}
+
+Then, I loop through pixels horizontally, starting to the left of the current fragment. I sum up all contributions and their weights according to the gaussian function multiplied by an edge-correcting factor based on the depth. As the final step I make sure I'm not dividing by 0 and write the result to the fragment output.
+\begin{lstlisting}[caption={bilat\_hor.frag},language=GLSL]
+for(int i = -FILTER_RADIUS;i <= FILTER_RADIUS; i++) {
+  vec3 reading = textureOffset(prev_bounce,vec3(fragUV,float(layer)),ivec2(i,0)).rgb;
+
+  float Z_reading = textureOffset(depth_texture,vec3(fragUV,float(layer)),ivec2(i,0)).r;
+
+  if(Z_reading == 1.0f)
+    continue;
+
+  float weight = gaussian(float(i),float(FILTER_RADIUS)/3.0f)
+          * max(0,(1 - sqrt(abs(mainZ - Z_reading))));
+
+  total_contr += weight * reading;
+  totalWeight += weight;
+}
+
+if(totalWeight == 0.0f) {
+  filtered = vec3(0,0,0);
+} else {
+  total_contr /= totalWeight;
+
+  filtered = total_contr.rgb;
+}
+\end{lstlisting}
+
+The vertical filter is almost exactly the same except I loop through fragments vertically in stead of horizontally. For the radiosity filter, I output to both a total radiosity as well as a next bounce texture, with blending enabled on only the total result. In order to enable blending on only one colour attachment in OpenGL, I use \verb=glEnablei(GL_BLEND,colour attachment)= like so:
+\begin{lstlisting}[caption={Filters.cpp},language=GLSL]
+glEnablei(GL_BLEND,1);
+glBlendFunc(GL_ONE,GL_ONE);
+glBlendEquation(GL_FUNC_ADD);
+\end{lstlisting}
+
+The vertical gaussian filter varies from the horizontal one in the following lines:
+\begin{lstlisting}[caption={bilat\_vert\_wblend.frag},language=GLSL]
+vec3 reading = textureOffset(prev_bounce,vec3(fragUV,float(layer)),ivec2(0,i)).rgb;
+
+float Z_reading = textureOffset(depth_texture,vec3(fragUV,float(layer)),ivec2(0,i)).r;
+[...]
+total_contr /= totalWeight;
+
+filtered = total_contr.rgb;
+total = total_contr.rgb;
+\end{lstlisting}

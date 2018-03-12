@@ -1,0 +1,16 @@
+11 samples
+dragon: 2.71ms
+
+23 samples
+dragon: 2.80ms
+
+37 samples
+dragon:	3.17ms
+
+wGauss
+dragon: 2.50ms
+
+woGauss
+dragon: 1.61ms
+
+comparison: 9.80ms

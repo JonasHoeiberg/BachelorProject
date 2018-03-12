@@ -1,0 +1,9 @@
+\beamer@endinputifotherversion {3.36pt}
+\beamer@sectionintoc {1}{Deferred Rendering}{3}{0}{1}
+\beamer@subsectionintoc {1}{1}{Deep G-buffer}{4}{0}{1}
+\beamer@subsectionintoc {1}{2}{Scene Reconstruction}{5}{0}{1}
+\beamer@sectionintoc {2}{Omni-directional Shadowmapping}{6}{0}{2}
+\beamer@sectionintoc {3}{Filters}{8}{0}{3}
+\beamer@subsectionintoc {3}{1}{Radiosity}{9}{0}{3}
+\beamer@subsectionintoc {3}{2}{SSAO}{16}{0}{3}
+\beamer@subsectionintoc {3}{3}{Gaussian Filter}{17}{0}{3}

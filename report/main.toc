@@ -1,0 +1,48 @@
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}
+\contentsline {chapter}{\numberline {2}Theory}{4}{chapter.2}
+\contentsline {section}{\numberline {2.1}Deferred Rendering}{4}{section.2.1}
+\contentsline {subsubsection}{Utilising the G-buffer}{6}{section*.2}
+\contentsline {subsubsection}{Disadvantages}{7}{section*.3}
+\contentsline {subsection}{\numberline {2.1.1}The Deep G-buffer}{7}{subsection.2.1.1}
+\contentsline {subsection}{\numberline {2.1.2}Scene Reconstruction}{11}{subsection.2.1.2}
+\contentsline {subsubsection}{Reconstructing Positions}{11}{section*.4}
+\contentsline {subsubsection}{Reconstructing Normals}{12}{section*.5}
+\contentsline {section}{\numberline {2.2}Omnidirectional Shadowmapping}{13}{section.2.2}
+\contentsline {section}{\numberline {2.3}Radiosity}{14}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}The Rendering Equation}{14}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}The Patch Method}{16}{subsection.2.3.2}
+\contentsline {subsection}{\numberline {2.3.3}Screen-Space Methodology}{18}{subsection.2.3.3}
+\contentsline {subsubsection}{Monte Carlo Integration}{18}{section*.6}
+\contentsline {subsubsection}{Quasi-Monte Carlo}{19}{section*.7}
+\contentsline {section}{\numberline {2.4}SSAO}{20}{section.2.4}
+\contentsline {section}{\numberline {2.5}Filtering}{21}{section.2.5}
+\contentsline {subsection}{\numberline {2.5.1}Gaussian Filtering}{21}{subsection.2.5.1}
+\contentsline {subsubsection}{Image Filter}{22}{section*.8}
+\contentsline {subsubsection}{Modifications}{23}{section*.9}
+\contentsline {chapter}{\numberline {3}Implementation}{25}{chapter.3}
+\contentsline {section}{\numberline {3.1}Design Overview}{25}{section.3.1}
+\contentsline {section}{\numberline {3.2}General Utility}{25}{section.3.2}
+\contentsline {paragraph}{The Full-Screen Quad (FSQuad}{25}{section*.10}
+\contentsline {paragraph}{Mesh Object}{26}{section*.11}
+\contentsline {paragraph}{Universal Shaders}{27}{section*.12}
+\contentsline {section}{\numberline {3.3}The RenderEngine Class}{28}{section.3.3}
+\contentsline {section}{\numberline {3.4}The GBuffer Class}{31}{section.3.4}
+\contentsline {section}{\numberline {3.5}Direct Lighting and Shadowmap}{35}{section.3.5}
+\contentsline {section}{\numberline {3.6}Filters}{38}{section.3.6}
+\contentsline {subsection}{\numberline {3.6.1}Radiosity}{38}{subsection.3.6.1}
+\contentsline {subsection}{\numberline {3.6.2}SSAO}{41}{subsection.3.6.2}
+\contentsline {subsection}{\numberline {3.6.3}Gaussian Filter}{42}{subsection.3.6.3}
+\contentsline {chapter}{\numberline {4}Results \& Discussion}{45}{chapter.4}
+\contentsline {section}{\numberline {4.1}Deep G-buffer Generation}{45}{section.4.1}
+\contentsline {subsection}{\numberline {4.1.1}Discussion}{45}{subsection.4.1.1}
+\contentsline {section}{\numberline {4.2}Lambertian and Shadow Mapping}{46}{section.4.2}
+\contentsline {subsection}{\numberline {4.2.1}Discussion}{46}{subsection.4.2.1}
+\contentsline {section}{\numberline {4.3}Radiosity}{47}{section.4.3}
+\contentsline {subsection}{\numberline {4.3.1}Discussion}{48}{subsection.4.3.1}
+\contentsline {section}{\numberline {4.4}SSAO}{49}{section.4.4}
+\contentsline {subsection}{\numberline {4.4.1}Discussion}{49}{subsection.4.4.1}
+\contentsline {section}{\numberline {4.5}Gaussian Filter}{50}{section.4.5}
+\contentsline {subsection}{\numberline {4.5.1}Discussion}{50}{subsection.4.5.1}
+\contentsline {section}{\numberline {4.6}Composite Rendering}{51}{section.4.6}
+\contentsline {subsection}{\numberline {4.6.1}Discussion}{51}{subsection.4.6.1}
+\contentsline {chapter}{\numberline {5}Conclusion}{53}{chapter.5}

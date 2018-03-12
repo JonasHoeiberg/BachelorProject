@@ -1,0 +1,48 @@
+\documentclass[a4paper]{report}
+
+\usepackage{array}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage[bookmarks]{hyperref}
+\usepackage{pgf,tikz}
+\usepackage{mathrsfs}
+\usepackage{amsmath}
+\usetikzlibrary{arrows}
+\usepackage{listings}
+\usepackage{hyperref}
+%\usepackage{multirow}
+
+\input{diverse/glsl-listings.tex}
+
+\begin{document}
+\title{	Bachelor Project: \\
+	\textbf{Using Deep G-buffers for Interactive Screenspace Global Illumination}}
+\author{Jonas H. Nielsen, s121751}
+\date{\parbox{\linewidth}{\centering%
+  \today\endgraf\bigskip
+  Supervisors\endgraf
+  Niels Jørgen Christensen \hspace*{3cm} Jeppe Revall Frisvad\endgraf\medskip
+  DTU Compute \endgraf
+  Technical University of Denmark}}
+\maketitle
+\newpage
+\begin{abstract}
+The purpose of this thesis is to implement and explain a number of screen-space global illumination methods. In order to achieve this goal I employ a deep G-buffer which provides our screen-space geometric data with an additional layer to allow for more scene consistency. I start out by going through the theory behind deferred rendering and its advantages, and use that to explain the advantages and use of a deep G-buffer implementation. I also explain the theory behind an omni-directional shadow map implementation based on a cube map texture produced in a single pass. I provide the theory for radiosity by taking a point of departure in the rendering equation and arriving at a quasi-Monte Carlo based screen-space solution. Additionally I explain the Alchemy SSAO algorithm and a filtering method to even out the results of both SSAO and radiosity.
+
+I describe the implementation of all concepts mentioned under theory by using code samples before moving on to my results. Based on the quality and running times of the results I conclude that the deep G-buffer, for the purpose of the scenes used in this thesis, does not provide enough advantages to justify its extra cost. I consider the implementation of all concepts successful, but radiosity and the omni-directional shadow map need optimisations to be viable. The use of the depth buffer to reconstruct the scene is concluded to be a viable way to trade off a small amount of performance to potentially free up a lot of space from the G-buffer.
+\end{abstract}
+\newpage
+\tableofcontents
+\newpage
+
+\input{1introduction/intro.tex}
+%\input{2hypethesis/hyp.tex}
+\input{3theory/theory.tex}
+\input{4implementation/impl.tex}
+\input{5results/results.tex}
+%\input{6discussion/disc.tex}
+\input{7conclusion/conc.tex}
+\input{bibliography/bib.tex}
+
+\end{document}
